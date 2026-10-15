@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+*.duckdb
+*.duckdb.wal
+*.sqlite
+*.db
+.ipynb_checkpoints/
+~$*.xlsx
