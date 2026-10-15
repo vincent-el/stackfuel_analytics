@@ -1,0 +1,9 @@
+training_id,training_name,variant,active,paused
+T01,Data Analyst – Vollzeit,vollzeit,47,5
+T02,Data Analyst – Teilzeit,teilzeit,25,5
+T03,Data Scientist – Vollzeit,vollzeit,32,2
+T04,Data Scientist – Teilzeit,teilzeit,15,2
+T05,Data Engineer – Vollzeit,vollzeit,28,2
+T06,Python für Data Analytics – Berufsbegleitend,berufsbegleitend,11,4
+T07,KI & Machine Learning Grundlagen – Berufsbegleitend,berufsbegleitend,5,2
+T08,Business Intelligence mit Power BI – Vollzeit,vollzeit,9,3

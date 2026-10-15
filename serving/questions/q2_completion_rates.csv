@@ -1,0 +1,28 @@
+training_id,training_name,funding_type,n,completed,dropped_out,still_open,completion_rate_pct,dropout_rate_pct,open_rate_pct,cancelled
+T01,Data Analyst – Vollzeit,Bildungsgutschein,87,58,19,10,66.7,21.8,11.5,0
+T01,Data Analyst – Vollzeit,Firmenkunde,21,15,3,3,71.4,14.3,14.3,0
+T01,Data Analyst – Vollzeit,Selbstzahler,22,14,4,4,63.6,18.2,18.2,0
+T02,Data Analyst – Teilzeit,Bildungsgutschein,40,29,7,4,72.5,17.5,10.0,0
+T02,Data Analyst – Teilzeit,Firmenkunde,5,3,1,1,60.0,20.0,20.0,0
+T02,Data Analyst – Teilzeit,Selbstzahler,7,4,1,2,57.1,14.3,28.6,0
+T03,Data Scientist – Vollzeit,Bildungsgutschein,64,45,11,8,70.3,17.2,12.5,0
+T03,Data Scientist – Vollzeit,Firmenkunde,15,8,5,2,53.3,33.3,13.3,0
+T03,Data Scientist – Vollzeit,Selbstzahler,12,9,3,0,75.0,25.0,0.0,0
+T03,Data Scientist – Vollzeit,unbekannt,1,1,0,0,100.0,0.0,0.0,0
+T04,Data Scientist – Teilzeit,Bildungsgutschein,19,15,3,1,78.9,15.8,5.3,0
+T04,Data Scientist – Teilzeit,Firmenkunde,2,2,0,0,100.0,0.0,0.0,0
+T04,Data Scientist – Teilzeit,Selbstzahler,2,2,0,0,100.0,0.0,0.0,0
+T05,Data Engineer – Vollzeit,Bildungsgutschein,43,31,8,4,72.1,18.6,9.3,0
+T05,Data Engineer – Vollzeit,Firmenkunde,7,6,0,1,85.7,0.0,14.3,0
+T05,Data Engineer – Vollzeit,Selbstzahler,6,4,2,0,66.7,33.3,0.0,0
+T06,Python für Data Analytics – Berufsbegleitend,Bildungsgutschein,33,23,6,4,69.7,18.2,12.1,0
+T06,Python für Data Analytics – Berufsbegleitend,Firmenkunde,8,5,2,1,62.5,25.0,12.5,0
+T06,Python für Data Analytics – Berufsbegleitend,Selbstzahler,9,8,0,1,88.9,0.0,11.1,0
+T07,KI & Machine Learning Grundlagen – Berufsbegleitend,Bildungsgutschein,21,18,2,1,85.7,9.5,4.8,0
+T07,KI & Machine Learning Grundlagen – Berufsbegleitend,Firmenkunde,4,2,0,2,50.0,0.0,50.0,0
+T07,KI & Machine Learning Grundlagen – Berufsbegleitend,Selbstzahler,3,2,1,0,66.7,33.3,0.0,0
+T07,KI & Machine Learning Grundlagen – Berufsbegleitend,unbekannt,1,1,0,0,100.0,0.0,0.0,0
+T08,Business Intelligence mit Power BI – Vollzeit,Bildungsgutschein,40,31,5,4,77.5,12.5,10.0,0
+T08,Business Intelligence mit Power BI – Vollzeit,Firmenkunde,13,9,2,2,69.2,15.4,15.4,0
+T08,Business Intelligence mit Power BI – Vollzeit,Selbstzahler,12,7,3,2,58.3,25.0,16.7,0
+T08,Business Intelligence mit Power BI – Vollzeit,unbekannt,1,1,0,0,100.0,0.0,0.0,0

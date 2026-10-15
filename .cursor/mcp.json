@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "warehouse": {
+      "command": "uvx",
+      "args": ["mcp-server-motherduck@1.1.0", "--db-path", "storage/warehouse.duckdb"]
+    }
+  }
+}
