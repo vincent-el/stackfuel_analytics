@@ -1,0 +1,27 @@
+# Owners: one group per StackFuel department that owns data here, named as the careers page names
+# them. Which model belongs to which group is set in dbt_project.yml (+group); a finding test
+# carries the group of the source it checks, so `dbt ls --select tag:finding --output-keys name group`
+# is the routing table. The alert path is production: Elementary (`edr monitor`) reads these owners
+# and slack_channel and posts the failures.
+
+version: 2
+
+groups:
+  - name: growth
+    owner: {name: Growth, email: growth@stackfuel.example}
+    config: {meta: {slack_channel: "#data-alerts-growth", owns: "the participant record: intake, channel, funding type"}}
+  - name: operations
+    owner: {name: Operations, email: operations@stackfuel.example}
+    config: {meta: {slack_channel: "#data-alerts-operations", owns: "the enrollment record: status, planned end, Storno"}}
+  - name: learning
+    owner: {name: Learning, email: learning@stackfuel.example}
+    config: {meta: {slack_channel: "#data-alerts-learning", owns: "the catalog: trainings and modules"}}
+  - name: engineering
+    owner: {name: Engineering, email: engineering@stackfuel.example}
+    config: {meta: {slack_channel: "#data-alerts-engineering", owns: "the learning platform: events and surveys"}}
+  - name: delivery
+    owner: {name: Delivery, email: delivery@stackfuel.example}
+    config: {meta: {slack_channel: "#data-alerts-delivery", owns: "the Betreuungsliste"}}
+  - name: data
+    owner: {name: Data, email: data@stackfuel.example}
+    config: {meta: {slack_channel: "#data-alerts", owns: "this repository: prep, the star, the functions, the tests"}}

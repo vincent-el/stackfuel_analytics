@@ -1,0 +1,171 @@
+version: 2
+
+models:
+  - name: stg_catalog__trainings
+    description: One row per training.
+    columns:
+      - name: training_id
+        data_tests: [unique, not_null]
+      - name: variant
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [vollzeit, teilzeit, berufsbegleitend]
+
+  - name: stg_crm__participants
+    description: One row per landed version of a CRM participant.
+    columns:
+      - name: participant_id
+        data_tests: [not_null]
+      - name: birth_date
+        data_tests:
+          - not_null:
+              name: participants_have_a_birth_date
+              config:
+                severity: warn
+                tags: [finding]
+      - name: email
+        description: Lowercased and trimmed.
+      - name: funding_type
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [Bildungsgutschein, Selbstzahler, Firmenkunde]
+
+  - name: stg_crm__enrollments
+    description: One row per landed version of an enrollment (Teilnahme).
+    columns:
+      - name: enrollment_id
+        data_tests: [not_null]
+      - name: participant_id
+        data_tests: [not_null]
+      - name: training_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_catalog__trainings')
+                field: training_id
+      - name: cohort_start_date
+        data_tests: [not_null]
+      - name: status
+        description: Trimmed and lowercased.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [angemeldet, aktiv, pausiert, abgeschlossen, abgebrochen, storniert]
+
+  - name: stg_lxp__progress_events
+    description: One row per delivered event row.
+    columns:
+      - name: event_id
+        data_tests: [not_null]
+      - name: enrollment_id
+        data_tests: [not_null]
+      - name: module_id
+        data_tests: [not_null]
+      - name: event_at
+        data_tests: [not_null]
+      - name: event_type
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [module_started, exercise_submitted, quiz_passed, module_completed]
+
+  - name: stg_lxp__survey_responses
+    description: One row per answered question.
+    columns:
+      - name: response_id
+        data_tests: [unique, not_null]
+      - name: enrollment_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('crm__enrollments')
+                field: enrollment_id
+      - name: submitted_at
+        data_tests: [not_null]
+      - name: survey_type
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [wochenfeedback, abschlussfeedback]
+      - name: question_key
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [nps, zufriedenheit_coach, zufriedenheit_gesamt, tempo, freitext, weiterempfehlung_grund]
+      - name: answer_value
+        description: The answer as delivered, trimmed; empty answers are null.
+      - name: answer_score
+        description: The integer in a scored answer ("8", "10/10" reads as 10); null for text.
+        data_tests:
+          - accepted_values:
+              name: nps_score_between_0_and_10
+              arguments:
+                values: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                quote: false
+              config:
+                where: "question_key = 'nps'"
+          - accepted_values:
+              name: rating_score_between_1_and_5
+              arguments:
+                values: [1, 2, 3, 4, 5]
+                quote: false
+              config:
+                where: "question_key in ('zufriedenheit_coach', 'zufriedenheit_gesamt', 'tempo')"
+
+  - name: stg_coach_list__assignments
+    description: One row per line of the sheet "Betreuung", a coach assigned to a participant.
+    columns:
+      - name: sheet_row_number
+        description: The only key; the sheet has none.
+        data_tests: [unique, not_null]
+      - name: cohort_start_date
+        description: Null when the cell gives only a month.
+      - name: cohort_month
+        description: First day of the cohort's month.
+      - name: last_contact_date
+      - name: participant_name
+        description: Whitespace collapsed; "Nachname, Vorname" turned into "Vorname Nachname".
+      - name: email
+        description: Lowercased and trimmed.
+      - name: training_spelling
+        description: Training as the coach typed it.
+        data_tests:
+          - relationships:
+              name: coach_list_spellings_are_mapped
+              arguments:
+                to: ref('coach_list_training_spellings')
+                field: training_spelling
+              config:
+                severity: warn
+                tags: [finding]
+      - name: coach_name
+        data_tests: [not_null]
+      - name: ampel
+        description: Normalised; "r" reads as rot, "g" and empty are null.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [grün, gelb, rot]
+      - name: is_email_missing
+        description: "Data-quality flag: the row has no email."
+      - name: is_name_reversed
+        description: "Data-quality flag: the name is typed as \"Nachname, Vorname\"."
+      - name: is_cohort_month_only
+        description: "Data-quality flag: the cohort cell gives a month, not a date."
+      - name: is_ampel_ambiguous
+        description: "Data-quality flag: the Ampel is typed as \"g\", grün or gelb; ampel is null."
+      - name: data_quality_issues
+        description: The codes of the data-quality flags that are set, e.g. [email_missing, name_reversed].
+
+  - name: stg_coach_list__legend
+    description: One row per line of the sheet "Legende".
+    columns:
+      - name: sheet_row_number
+        data_tests: [unique, not_null]
+      - name: is_ampel_value
+        description: The row defines an Ampel value rather than a note.

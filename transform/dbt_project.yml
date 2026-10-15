@@ -1,0 +1,55 @@
+name: stackfuel_analytics
+version: "0.1.0"
+config-version: 2
+profile: stackfuel_analytics
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+seed-paths: ["seeds"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages", "logs"]
+
+# After every build: column names must match their types (macros/check_column_names_match_types.sql).
+on-run-end: "{{ check_column_names_match_types() }}"
+
+vars:
+  # The one timezone every model speaks (macros/to_reporting_time.sql); change it here only.
+  reporting_timezone: Europe/Berlin
+  # The zone each source writes its timestamps in (CRM: Berlin local without offset, LXP: UTC "Z").
+  source_timezones: {crm: Europe/Berlin, lxp: UTC, loader: UTC}
+  # loader: ingestion/load.sql writes _loaded_at in UTC.
+
+models:
+  stackfuel_analytics:
+    # +group: the department that owns the data and (could) receive its test alerts (models/_groups.yml).
+    staging:
+      +schema: stg
+      +materialized: view
+      stg_crm__participants: {+group: growth}
+      stg_crm__enrollments: {+group: operations}
+      stg_lxp__progress_events: {+group: engineering}
+      stg_lxp__survey_responses: {+group: engineering}
+      stg_catalog__trainings: {+group: learning}
+      stg_coach_list__assignments: {+group: delivery}
+      stg_coach_list__legend: {+group: delivery}
+    prep:
+      +schema: prep
+      +materialized: view
+      +group: data
+    marts:
+      +schema: mart
+      +materialized: table
+      +group: data
+      # The five answers: saved, parameterised queries over the star (dbt-duckdb table functions).
+      training_operations:
+        +materialized: table_function
+
+seeds:
+  stackfuel_analytics:
+    +schema: seeds
+    +group: data
+
+data_tests:
+  # Every test writes its failing rows to dbt_test__audit.<test name>, routed to the data team
+  +store_failures: true
+  +group: data

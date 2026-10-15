@@ -1,0 +1,389 @@
+version: 2
+
+models:
+  - name: dim_date
+    description: One row per calendar day, 2024 to 2027.
+    columns:
+      - name: date_day
+        data_tests: [unique, not_null]
+      - name: quarter_label
+        description: Calendar year and quarter, e.g. 2026-Q3.
+      - name: fiscal_quarter_de
+        description: Quarter of a fiscal year starting 1 January.
+      - name: fiscal_quarter_uk
+        description: Quarter of a fiscal year starting 1 April.
+
+  - name: dim_trainings
+    description: One row per training in the catalog.
+    columns:
+      - name: training_id
+        data_tests: [unique, not_null]
+      - name: training_name
+      - name: track
+        description: Subject, e.g. Data Analyst.
+      - name: variant
+        description: Delivery form, e.g. vollzeit, berufsbegleitend.
+      - name: is_active
+        description: Whether the training is offered.
+      - name: duration_weeks
+        description: Planned duration.
+      - name: list_price_eur
+      - name: module_count
+        description: Modules in the curriculum; the learning-progress denominator.
+
+  - name: dim_modules
+    description: One row per module of a training.
+    columns:
+      - name: module_id
+        data_tests: [unique, not_null]
+      - name: training_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_trainings')
+                field: training_id
+      - name: module_order
+        description: Position in the curriculum, 1-based.
+      - name: module_name
+      - name: estimated_hours
+        description: Planned learning hours.
+
+  - name: dim_cohorts
+    description: One row per cohort, a training and a start date.
+    columns:
+      - name: cohort_key
+        description: "training_id || '@' || cohort_start_date, e.g. T01@2026-03-02."
+        data_tests: [unique, not_null]
+      - name: training_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_trainings')
+                field: training_id
+      - name: cohort_start_date
+        description: A Monday.
+      - name: cohort_month
+        description: First day of the start month; what a month-only cohort cell matches on.
+      - name: enrollment_count
+        description: Enrollments in the cohort, any status.
+
+  - name: dim_participants
+    description: >
+      One row per participant id: the CRM's intake record (a person registered twice holds two),
+      or an id known only from an enrollment, with 'unbekannt' in every categorical column and
+      null elsewhere.
+    columns:
+      - name: participant_id
+        data_tests: [unique, not_null]
+      - name: person_key
+        description: The first participant id per email, so one person registered twice shares one key.
+      - name: birth_date
+      - name: created_at
+      - name: modified_at
+      - name: first_name
+      - name: last_name
+      - name: email
+        description: Lowercased and trimmed.
+      - name: city
+      - name: federal_state
+      - name: funding_type
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [Bildungsgutschein, Selbstzahler, Firmenkunde, unbekannt]
+      - name: acquisition_channel
+        description: Where the participant came from, e.g. Google Ads, Empfehlung.
+      - name: is_in_crm
+        description: Whether the CRM has the participant.
+
+  - name: dim_coaches
+    description: One row per coach named in the coach list.
+    columns:
+      - name: coach_key
+        description: The name as a slug, e.g. daniel_brandt.
+        data_tests: [unique, not_null]
+      - name: coach_name
+        description: As typed in the sheet, trimmed.
+
+  - name: fct_enrollment_status_periods
+    description: >
+      One row per enrollment per status period, valid_from <= t < valid_to. The CRM's current
+      status is the observed, open-ended period; earlier periods are inferred from created_at
+      and the first LXP event. The enrollment's own keys and dates repeat on every period.
+    data_tests:
+      - unique:
+          arguments:
+            column_name: "enrollment_id || '@' || valid_from"
+    columns:
+      - name: enrollment_id
+        description: With valid_from, the primary key.
+        data_tests: [not_null]
+      - name: training_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_trainings')
+                field: training_id
+      - name: cohort_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_cohorts')
+                field: cohort_key
+      - name: participant_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_participants')
+                field: participant_id
+      - name: cohort_start_date
+      - name: planned_end_date
+      - name: valid_from
+        description: Start of the period, inclusive.
+        data_tests: [not_null]
+      - name: valid_to
+        description: End of the period, exclusive; 9999-12-31 for the current period.
+        data_tests: [not_null]
+      - name: created_at
+        description: When the enrollment was created in the CRM.
+      - name: status
+        description: >
+          A CRM status, or unbekannt for an inferred period in which the enrollment was aktiv or
+          pausiert on days the CRM did not keep.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [angemeldet, aktiv, pausiert, abgeschlossen, abgebrochen, storniert, unbekannt]
+      - name: is_current
+        description: The period of the CRM's current status; one per enrollment.
+      - name: is_inferred
+        description: The period is read from evidence, not from the CRM's current status.
+      - name: evidence
+        description: What the period is read from, the CRM's current status, its created_at, or the first LXP event.
+
+  - name: fct_module_progress_events
+    description: >
+      One row per LXP progress event, with running columns per enrollment, so learning progress
+      at any moment is the last event on or before it.
+    columns:
+      - name: event_id
+        data_tests: [unique, not_null]
+      - name: enrollment_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('crm__enrollments')
+                field: enrollment_id
+      - name: module_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_modules')
+                field: module_id
+      - name: training_id
+        description: The enrollment's training, not the module's.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_trainings')
+                field: training_id
+      - name: cohort_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_cohorts')
+                field: cohort_key
+      - name: participant_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_participants')
+                field: participant_id
+      - name: event_at
+      - name: event_type
+        description: e.g. module_started, module_completed.
+      - name: module_order
+        description: The module's position in the enrollment's curriculum; null for a module of another training.
+      - name: event_number
+        description: 1, 2, 3 … per enrollment by event_at, ties by event_id.
+      - name: modules_completed_so_far
+        description: Running count of module_completed events of the training's own modules, this one included.
+      - name: modules_in_training
+        description: The training's module count.
+      - name: is_module_of_other_training
+        description: "Data-quality flag: the event's module belongs to a training other than the enrollment's."
+
+  - name: int_coach_list__matches
+    description: >
+      One row per line of the coach list, matched to an enrollment on email + training, or
+      without an email on name + cohort month + training; unmatched and ambiguous lines stay,
+      flagged. Of several lines on one enrollment the latest Letzter Kontakt counts.
+    columns:
+      - name: sheet_row_number
+        data_tests: [unique, not_null]
+      - name: coach_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_coaches')
+                field: coach_key
+      - name: enrollment_id
+        description: Null when the line hits no enrollment or two.
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('crm__enrollments')
+                field: enrollment_id
+      - name: participant_id
+        description: The matched enrollment's participant; null when unmatched.
+      - name: cohort_key
+        description: The matched enrollment's cohort; null when unmatched.
+      - name: training_id
+        description: The sheet's training spelling through the seed; null when unmapped.
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_trainings')
+                field: training_id
+      - name: cohort_start_date
+        description: Null when the cell gives only a month.
+      - name: cohort_month
+      - name: last_contact_date
+      - name: participant_name
+        description: As in the sheet, "Vorname Nachname" (staging).
+      - name: email
+      - name: training_spelling
+      - name: ampel
+        description: grün, gelb, rot or null.
+      - name: matched_by
+        description: The key that matched, email or name; null when unmatched.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [email, name]
+      - name: is_email_missing
+        description: "Data-quality flag: the line has no email."
+      - name: is_name_reversed
+        description: "Data-quality flag: the name is typed as \"Nachname, Vorname\"."
+      - name: is_cohort_month_only
+        description: "Data-quality flag: the cohort cell gives a month, not a date."
+      - name: is_ampel_ambiguous
+        description: "Data-quality flag: the Ampel is typed as \"g\", grün or gelb."
+      - name: is_training_spelling_unmapped
+        description: "Data-quality flag: the seed has no row for the training spelling."
+      - name: is_match_ambiguous
+        description: "Data-quality flag: the line fits two enrollments and is matched to none."
+      - name: is_unmatched
+        description: "Data-quality flag: the line fits no enrollment."
+      - name: is_duplicate_row
+        description: "Data-quality flag: another line of the same enrollment has a later Letzter Kontakt; this one is not counted."
+      - name: data_quality_issues
+        description: The codes of the data-quality flags that are set, e.g. [email_missing, duplicate_row].
+
+  - name: fct_coach_assignments
+    description: >
+      One row per enrollment on the coach list: its coach and Ampel from the line that counts,
+      the latest Letzter Kontakt. Unmatched, ambiguous and duplicate lines stay in
+      int_coach_list__matches.
+    columns:
+      - name: enrollment_id
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('crm__enrollments')
+                field: enrollment_id
+      - name: coach_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_coaches')
+                field: coach_key
+      - name: participant_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_participants')
+                field: participant_id
+      - name: cohort_key
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_cohorts')
+                field: cohort_key
+      - name: training_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_trainings')
+                field: training_id
+      - name: sheet_row_number
+        description: The counted line in the sheet.
+      - name: last_contact_date
+      - name: ampel
+        description: grün, gelb, rot or null.
+      - name: ampel_meaning
+        description: The legend's meaning of the Ampel value.
+      - name: matched_by
+        description: The path that matched, email or name.
+
+  - name: fct_survey_responses
+    description: >
+      One row per answered survey question, with the enrollment's keys. A submission (one form
+      on one day) is one group-by of this table.
+    columns:
+      - name: response_id
+        data_tests: [unique, not_null]
+      - name: enrollment_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('crm__enrollments')
+                field: enrollment_id
+      - name: training_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_trainings')
+                field: training_id
+      - name: cohort_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_cohorts')
+                field: cohort_key
+      - name: participant_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_participants')
+                field: participant_id
+      - name: submitted_at
+      - name: survey_type
+        description: Weekly or final survey, wochenfeedback or abschlussfeedback.
+      - name: survey_week
+        description: Training week of a weekly survey; null for the final survey.
+      - name: question_key
+        description: Degenerate dimension, e.g. nps, tempo.
+      - name: answer_value
+        description: As delivered; null when empty; free text may hold html.
+      - name: answer_score
+        description: Integer score; null for text.

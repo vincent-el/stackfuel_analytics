@@ -1,0 +1,38 @@
+version: 2
+
+models:
+  - name: crm__participants
+    description: One row per CRM participant, the latest landed version.
+
+  - name: crm__enrollments
+    description: One row per enrollment (Teilnahme), the latest landed version.
+    columns:
+      - name: participant_id
+        description: Not every id has a CRM record; the finding test enrollments_have_a_participant counts them.
+      - name: cohort_key
+        description: "The cohort, training_id || '@' || cohort_start_date, e.g. T01@2026-03-02."
+
+  - name: catalog__training_modules
+    description: One row per module, unnested from the trainings' modules array.
+    columns:
+      - name: module_id
+        data_tests: [unique, not_null]
+      - name: module_order
+        description: Position in the curriculum, 1-based.
+        data_tests: [not_null]
+
+  - name: lxp__progress_events
+    description: One row per event, delivered copies removed.
+    columns:
+      - name: enrollment_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('crm__enrollments')
+                field: enrollment_id
+      - name: module_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('catalog__training_modules')
+                field: module_id

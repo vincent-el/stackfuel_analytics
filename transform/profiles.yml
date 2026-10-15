@@ -1,0 +1,11 @@
+stackfuel_analytics:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      # Relative to transform/, where dbt runs; one file for raw and all layers.
+      path: ../storage/warehouse.duckdb
+      # So run-time stamps (current_timestamp) are the same on any machine.
+      settings:
+        TimeZone: Europe/Berlin
+      threads: 4

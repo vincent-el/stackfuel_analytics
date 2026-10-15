@@ -1,0 +1,17 @@
+version: 2
+
+seeds:
+  - name: coach_list_training_spellings
+    description: >
+      Hand-kept map from a training spelling in the coach list to the catalog training_id.
+      A new spelling is one more row.
+    columns:
+      - name: training_spelling
+        data_tests: [unique, not_null]
+      - name: training_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_catalog__trainings')
+                field: training_id

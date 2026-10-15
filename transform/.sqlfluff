@@ -1,0 +1,16 @@
+[sqlfluff]
+dialect = duckdb
+templater = jinja
+# Package macros (dbt_date.*) render as placeholders; dbt itself checks the Jinja.
+ignore = templating
+max_line_length = 100
+# ST06 reorders columns by shape; ours are ordered by meaning (PK, FK, dates, dimensions, measures).
+# AM04 flags select *; the CTE template uses it on purpose.
+exclude_rules = ST06, AM04
+
+[sqlfluff:templater:jinja]
+apply_dbt_builtins = True
+load_macros_from_path = macros
+
+[sqlfluff:rules:capitalisation.keywords]
+capitalisation_policy = lower

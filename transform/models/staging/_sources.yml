@@ -1,0 +1,151 @@
+# The raw contract: one table per API endpoint and per Excel sheet, named raw.<source>__<table>,
+# values as delivered, plus _loaded_at (timestamp, UTC) and _source (the landing file) on every
+# table. One dbt source per system, because their timestamp rules differ.
+
+version: 2
+
+sources:
+  - name: catalog
+    description: Course catalog, GET /trainings.
+    schema: raw
+    tables:
+      - name: trainings
+        identifier: catalog__trainings
+        description: One row per training, modules nested.
+        columns:
+          - name: training_id
+            description: e.g. T01.
+          - name: training_name
+          - name: track
+            description: Subject, e.g. Data Analyst.
+          - name: variant
+          - name: duration_weeks
+          - name: list_price_eur
+          - name: is_active
+            description: Whether the training is offered.
+          - name: modules
+            description: JSON array of {module_id, module_order, module_name, estimated_hours}.
+          - name: _loaded_at
+          - name: _source
+
+  - name: crm
+    description: >
+      CRM, GET /participants and GET /enrollments. Timestamps are Berlin local time without
+      offset; modified_at is the incremental cursor.
+    schema: raw
+    tables:
+      - name: participants
+        identifier: crm__participants
+        description: One row per landed version of a participant.
+        columns:
+          - name: participant_id
+          - name: first_name
+          - name: last_name
+          - name: email
+            description: As typed.
+          - name: birth_date
+            description: YYYY-MM-DD.
+          - name: city
+          - name: federal_state
+          - name: funding_type
+          - name: acquisition_channel
+          - name: created_at
+          - name: modified_at
+          - name: _loaded_at
+          - name: _source
+
+      - name: enrollments
+        identifier: crm__enrollments
+        description: One row per landed version of an enrollment (Teilnahme).
+        columns:
+          - name: enrollment_id
+          - name: participant_id
+          - name: training_id
+          - name: cohort_start_date
+            description: YYYY-MM-DD.
+          - name: planned_end_date
+            description: YYYY-MM-DD.
+          - name: status
+            description: As typed; casing and whitespace vary.
+          - name: status_changed_at
+          - name: created_at
+          - name: modified_at
+          - name: _loaded_at
+          - name: _source
+
+  - name: lxp
+    description: >
+      Learning platform, GET /progress-events and GET /survey-responses. Timestamps are UTC
+      with suffix Z; event_time and submitted_at are the incremental cursors.
+    schema: raw
+    tables:
+      - name: progress_events
+        identifier: lxp__progress_events
+        description: One row per delivered event; the LXP may deliver an event twice.
+        columns:
+          - name: event_id
+            description: e.g. ev-0001234.
+          - name: enrollment_id
+          - name: module_id
+            description: e.g. T01-M03.
+          - name: event_type
+          - name: event_time
+          - name: _loaded_at
+          - name: _source
+
+      - name: survey_responses
+        identifier: lxp__survey_responses
+        description: One row per answered question.
+        columns:
+          - name: response_id
+          - name: enrollment_id
+          - name: survey_type
+          - name: survey_week
+            description: Training week of a weekly survey; null for the final survey.
+          - name: question_key
+          - name: answer_value
+            description: Always a string, e.g. "8", "10/10" or free text.
+          - name: submitted_at
+          - name: _loaded_at
+          - name: _source
+
+  - name: coach_list
+    description: >
+      Hand-kept Excel coach_betreuungsliste.xlsx, one table per sheet. Headers snake_cased,
+      every cell text: date-typed cells as ISO ("2026-04-13T00:00:00"), text cells as typed,
+      empty cells null.
+    schema: raw
+    tables:
+      - name: coach_list_betreuung
+        identifier: coach_list__betreuung
+        description: Sheet "Betreuung", one row per sheet row.
+        columns:
+          - name: _row_number
+            description: Row number in the sheet (header = 1); the only key.
+          - name: teilnehmer_in
+            description: Participant name, "Vorname Nachname" or "Nachname, Vorname".
+          - name: e_mail
+          - name: training
+            description: Training as the coach wrote it.
+          - name: kohorte
+            description: Cohort start, ISO, "dd.mm.yyyy" or a month "mm/yyyy".
+          - name: coach
+          - name: ampel
+            description: Traffic light as typed, e.g. "grün", "R".
+          - name: letzter_kontakt
+            description: Last contact, ISO or "dd.mm.yy".
+          - name: notizen
+          - name: _loaded_at
+          - name: _source
+
+      - name: coach_list_legende
+        identifier: coach_list__legende
+        description: Sheet "Legende", one row per sheet row.
+        columns:
+          - name: _row_number
+            description: Row number in the sheet (header = 1).
+          - name: ampel
+            description: An Ampel value, or a label such as "Hinweis".
+          - name: bedeutung
+          - name: _loaded_at
+          - name: _source

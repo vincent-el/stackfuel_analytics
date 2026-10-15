@@ -1,0 +1,108 @@
+# Table functions over the star, the weekly standard report. Called with arguments, by position
+# or by name; without, every parameter takes its default (the Stichtag 31.08.2026, 15 pp):
+#   select * from mart.report_active_participations()
+#   select * from mart.report_progress_vs_schedule(date '2026-06-30', 20)
+#   select * from mart.report_progress_vs_schedule(behind_schedule_pp := 20)
+# Each returns additive columns (counts, numerators, denominators), never an aggregate rate; the
+# reader divides. A percentage per enrollment is a row attribute and may travel with its row.
+# A reading "at the end of reference_date" is as of the last second of that day.
+# Generic tests cannot call a function; their pinned readings are in tests/.
+
+version: 2
+
+models:
+  - name: report_active_participations
+    description: >
+      Q1. One cell per training and status (aktiv, pausiert): the enrollments in that status at
+      the end of reference_date, inferred periods included. Every training gets both cells,
+      0 when empty. Parameters: reference_date.
+    columns:
+      - name: training_id
+      - name: status
+        description: aktiv or pausiert.
+      - name: enrollment_count
+
+  - name: report_completion_rates
+    description: >
+      Q2. One cell per training, funding type, quarter of the planned end and status: the
+      enrollments whose planned_end_date lies before reference_date, by their status at the end of
+      reference_date, within a window of planned-end quarters; no window is the Brief's answer.
+      The ruling travels as outcome: the three shares that add to n (abgeschlossen, abgebrochen,
+      offen), null for a cancelled booking, which is counted beside n. Parameters: reference_date,
+      planned_end_from, planned_end_to (quarter labels as dim_date writes them, null = no bound).
+    columns:
+      - name: training_id
+      - name: funding_type
+        description: From dim_participants, 'unbekannt' included.
+      - name: planned_end_quarter
+        description: The quarter of planned_end_date as dim_date labels it (e.g. 2026-Q2).
+      - name: status
+        description: The status at the end of reference_date, as fct_enrollment_status_periods holds it.
+      - name: outcome
+        description: abgeschlossen, abgebrochen or offen (aktiv, pausiert, angemeldet or unbekannt past the plan); null for storniert, a cancelled booking has no outcome. n is the sum where outcome is not null.
+      - name: enrollment_count
+
+  - name: report_progress_vs_schedule
+    description: >
+      Q3. One row per enrollment aktiv at the end of reference_date (Q1's population): the
+      modules completed against the planned time elapsed, both as counts and in percent, their
+      gap in percentage points, and the flag im Verzug.
+      Parameters: reference_date, behind_schedule_pp (percentage points, e.g. 15).
+    columns:
+      - name: enrollment_id
+      - name: training_id
+      - name: cohort_key
+      - name: participant_id
+      - name: modules_completed
+        description: module_completed events of the training's own modules on or before the end of reference_date.
+      - name: modules_in_training
+      - name: modules_completed_pct
+        description: 100 × modules_completed / modules_in_training.
+      - name: planned_duration_days
+        description: Calendar days from cohort_start_date to planned_end_date.
+      - name: days_elapsed_within_plan
+        description: Calendar days from cohort_start_date to reference_date, held within 0 and planned_duration_days.
+      - name: time_elapsed_within_plan_pct
+        description: 100 × days_elapsed_within_plan / planned_duration_days; 100 once the planned end has passed.
+      - name: schedule_gap_pp
+        description: time_elapsed_within_plan_pct minus modules_completed_pct, in percentage points; negative when ahead of the plan.
+      - name: is_behind_schedule
+        description: im Verzug, schedule_gap_pp is at least behind_schedule_pp.
+
+  - name: report_nps_by_quarter
+    description: >
+      Q4. One cell per training, quarter of submission and respondent status: the final-survey
+      NPS answers submitted by the end of reference_date, as promoters (9-10), passives (7-8)
+      and detractors (0-6). The score, (promoters - detractors) / responses, is not stored.
+      Parameters: reference_date.
+    columns:
+      - name: training_id
+      - name: quarter_start_date
+        description: First day of the quarter the answer was submitted in.
+      - name: quarter_label
+        description: The same quarter as a label, e.g. 2026-Q3.
+      - name: respondent_status
+        description: The respondent's enrollment status at the end of reference_date; the final feedback is also answered after a dropout.
+      - name: promoters
+      - name: passives
+      - name: detractors
+      - name: responses
+        description: promoters + passives + detractors; the n to show beside every value.
+
+  - name: report_coach_load
+    description: >
+      Q5. One row per enrollment aktiv or pausiert at the end of reference_date, with the coach
+      and Ampel of its counted line in the coach list; coach_key is null without a line. The
+      sheet keeps no history, so the Ampel is as delivered at any reference_date.
+      Parameters: reference_date.
+    columns:
+      - name: enrollment_id
+      - name: training_id
+      - name: cohort_key
+      - name: participant_id
+      - name: coach_key
+        description: Null for a Teilnahme the coach list does not name, ohne Coach.
+      - name: status
+        description: aktiv or pausiert.
+      - name: ampel
+        description: grün, gelb, rot or null.
