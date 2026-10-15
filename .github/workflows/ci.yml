@@ -1,0 +1,17 @@
+# Lint and the idempotence check (make check: two runs, same row counts) on every push to main and pull request.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+      - run: uv sync
+      - run: make lint
+      - run: make check

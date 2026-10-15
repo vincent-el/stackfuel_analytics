@@ -1,0 +1,16 @@
+{
+	"recommendations": [
+		"dbtLabsInc.dbt",
+		"chuckjonas.duckdb",
+		"dorzey.vscode-sqlfluff",
+		"charliermarsh.ruff",
+		"ms-python.python",
+		"mechatroner.rainbow-csv",
+		"vscode-icons-team.vscode-icons",
+		"yzhang.markdown-all-in-one",
+		"satokaz.vscode-markdown-header-coloring"
+	],
+	"unwantedRecommendations": [
+		"innoverio.vscode-dbt-power-user"
+	]
+}

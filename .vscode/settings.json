@@ -1,0 +1,34 @@
+{
+	// Python: the project's uv environment, ruff for lint and format.
+	"python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+	"[python]": {
+		"editor.defaultFormatter": "charliermarsh.ruff",
+		"editor.formatOnSave": true
+	},
+
+	// SQL: only sqlfluff formats (the dbt and DuckDB extensions also offer to).
+	"[jinja-sql]": { "editor.defaultFormatter": "dorzey.vscode-sqlfluff" },
+	"[sql]": { "editor.defaultFormatter": "dorzey.vscode-sqlfluff" },
+	"sqlfluff.executablePath": "${workspaceFolder}/.venv/bin/sqlfluff",
+	"sqlfluff.workingDirectory": "${workspaceFolder}/transform",
+	"sqlfluff.linter.run": "onSave",
+
+	// dbt: the project parses cleanly under v2, so keep all diagnostics (v1 mode would hide them).
+	"dbt.dbtMajorVersion": "v2",
+
+	// DuckDB: read-only and never attached on startup; any open handle blocks `make build`.
+	"duckdb.databases": [
+		{
+			"alias": "warehouse",
+			"type": "file",
+			"path": "./storage/warehouse.duckdb",
+			"readOnly": true,
+			"attached": false
+		}
+	],
+
+	"files.exclude": {
+		"transform/target": true,
+		"transform/logs": true
+	}
+}

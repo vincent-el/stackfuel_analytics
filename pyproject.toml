@@ -1,0 +1,27 @@
+[project]
+name = "stackfuel-analytics"
+version = "0.1.0"
+description = "Weekly Training Operations KPIs: raw -> staging -> marts on DuckDB with dbt"
+requires-python = "==3.12.*"
+dependencies = [
+    "dbt-duckdb==1.11.0",
+    "duckdb==1.5.6",
+    "httpx==0.28.1",
+    "openpyxl==3.1.5",
+    "pyyaml==6.0.3",
+    "streamlit==1.65.0",
+]
+
+[tool.uv]
+package = false
+
+[dependency-groups]
+dev = [
+    "ruff>=0.17.0",
+    "sqlfluff==4.4.0",
+]
+
+[tool.ruff]
+# Same limit as transform/.sqlfluff. _brief/ is the fixture as received, not ours to lint.
+line-length = 100
+extend-exclude = ["_brief"]

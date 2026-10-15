@@ -1,0 +1,20 @@
+# The pipeline builds these; never commit data.
+storage/
+
+# Secrets
+.env
+
+# dbt
+transform/target/
+transform/logs/
+transform/dbt_packages/
+transform/.user.yml
+logs/
+
+# Python
+.venv/
+__pycache__/
+
+# OS and tool caches
+.DS_Store
+.ruff_cache/
