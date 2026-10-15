@@ -1,0 +1,4 @@
+# The daily run. Install with `crontab orchestration/crontab` on the box that holds the clone.
+# cron's PATH is minimal: uv must be on this one. % is cron's line separator, hence \%.
+PATH=/usr/local/bin:/usr/bin:/bin
+0 6 * * * cd /opt/stackfuel_analytics && mkdir -p storage/logs && make run >> storage/logs/run_$(date +\%Y-\%m-\%d).log 2>&1

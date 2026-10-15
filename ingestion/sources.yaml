@@ -1,0 +1,42 @@
+# What is loaded. One entry per source; its name is the prefix of its raw tables
+# (raw.<source>__<table>) and the dbt source name. `type` picks the fetcher in extract.py.
+# API_BASE_URL and API_PASSWORD come from the environment; the Makefile sets the fixture's defaults. Paths: repository root.
+
+storage:
+  bucket: storage/bucket            # landed files, the stand-in for S3; raw is rebuilt from it
+  warehouse: storage/warehouse.duckdb
+
+sources:
+  catalog:                          # course catalog: small, unpaginated, always full
+    type: api
+    api:
+      base_url: "${API_BASE_URL}"
+      login: {path: /login, username: stackfuel, password: "${API_PASSWORD}"}
+      page_size: 500                # the API maximum: fewest requests, fewest 503s
+    endpoints:
+      - {path: /trainings, table: trainings}
+
+  crm:                              # timestamps in Europe/Berlin local time, no offset
+    type: api
+    api:
+      base_url: "${API_BASE_URL}"
+      login: {path: /login, username: stackfuel, password: "${API_PASSWORD}"}
+      page_size: 500                # the API maximum: fewest requests, fewest 503s
+    endpoints:                      # param: the API's inclusive filter; cursor: its field
+      - {path: /participants, table: participants, param: modified_after, cursor: modified_at}
+      - {path: /enrollments,  table: enrollments,  param: modified_after, cursor: modified_at}
+
+  lxp:                              # timestamps in UTC, Z suffix
+    type: api
+    api:
+      base_url: "${API_BASE_URL}"
+      login: {path: /login, username: stackfuel, password: "${API_PASSWORD}"}
+      page_size: 500                # the API maximum: fewest requests, fewest 503s
+    endpoints:
+      - {path: /progress-events,  table: progress_events,  param: since, cursor: event_time}
+      - {path: /survey-responses, table: survey_responses, param: since, cursor: submitted_at}
+
+  coach_list:                       # the hand-kept Excel, one table per sheet
+    type: excel
+    file: _brief/data/coach_betreuungsliste.xlsx
+    sheets: {Betreuung: betreuung, Legende: legende}
